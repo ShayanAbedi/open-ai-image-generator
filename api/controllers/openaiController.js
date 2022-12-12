@@ -1,6 +1,6 @@
 const { Configuration, OpenAIApi } = require('openai');
 const configuration = new Configuration({
-  apiKey: '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',
+  apiKey: process.env.OPENAI_API_KEY,
 });
 const openai = new OpenAIApi(configuration);
 
@@ -25,14 +25,10 @@ const generateImage = async (req, res) => {
   } catch (error) {
     res.status(400).json({
       success: false,
-      error: 'The image could not be generated',
+      error:
+        error.response.data.error.message ?? 'The image could not be generated',
     });
-    if (error.response) {
-      console.log(error.response.status);
-      console.log(error.response.data);
-    } else {
-      console.log(error.message);
-    }
+    console.log(error.response.data);
   }
 };
 

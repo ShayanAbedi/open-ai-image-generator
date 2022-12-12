@@ -1,62 +1,121 @@
 import { useState } from 'react';
 import { InfoCircleOutlined } from '@ant-design/icons';
-import { Button, Form, Input, Radio, Spin } from 'antd';
+import {
+  Button,
+  Card,
+  Form,
+  Image,
+  Input,
+  InputNumber,
+  message,
+  Modal,
+  Radio,
+  Spin,
+} from 'antd';
 import axios from 'axios';
 
 const Search = () => {
   const [form] = Form.useForm();
-  const [size, setSize] = useState('medium');
-  const [imageUrl, setImageUrl] = useState(null);
+  const [messageApi, contextHolder] = message.useMessage();
+  const [images, setImages] = useState<[{ url: string }] | null>(null);
   const [loading, setLoading] = useState(false);
+  const [numberOfImages, setNumberOfImages] = useState<any>(1);
 
-  const onSizeChange = ({ sizeValue }: any) => {
-    setSize(sizeValue);
-  };
   const onFinish = (values: any) => {
     setLoading(true);
     axios
       .post('http://localhost:9000/openai/generateimage', {
         prompt: values.prompt,
-        size: values.size,
-        n: 1,
+        size: 'medium',
+        n: numberOfImages,
       })
       .then((res) => {
         setLoading(false);
-        setImageUrl(res.data.data[0].url);
+        setImages(res.data.data);
       })
       .catch((err) => {
+        messageApi.open({
+          type: 'error',
+          content: err.response.data.error,
+        });
         setLoading(false);
+        setImages(null);
       });
   };
 
   return (
-    <div>
+    <Modal
+      open={true}
+      width={2000}
+      title={
+        <div style={{ textAlign: 'center', fontSize: '32px' }}>
+          Text to Image
+        </div>
+      }
+      footer={false}
+      closable={false}
+    >
+      {contextHolder}
       <Form
         form={form}
         layout="vertical"
-        initialValues={{ sizeValue: size, prompt: '' }}
-        onValuesChange={onSizeChange}
+        initialValues={{ prompt: '' }}
         onFinish={onFinish}
         size="large"
       >
-        <Form.Item label="Image Size" name="sizeValue">
-          <Radio.Group>
-            <Radio.Button value="small">Small</Radio.Button>
-            <Radio.Button value="medium">Medium</Radio.Button>
-            <Radio.Button value="large">Large</Radio.Button>
-          </Radio.Group>
+        <Form.Item label="Number of Images (Max: 10)" name="numberOfImages">
+          {' '}
+          <InputNumber
+            min={1}
+            max={10}
+            defaultValue={1}
+            onChange={(value) => setNumberOfImages(value)}
+          />
         </Form.Item>
-        <Form.Item label="Search" name="prompt">
-          <Input placeholder="Search" />
+
+        <Form.Item label="Search" name="prompt" required>
+          <Input
+            placeholder="A 3D render of an astronaut walking in a green desert"
+            required
+          />
         </Form.Item>
         <Form.Item>
-          <Button type="primary" htmlType="submit">
-            Submit
+          <Button type="primary" htmlType="submit" disabled={loading}>
+            Generate Image
           </Button>
         </Form.Item>
       </Form>
-      {loading ? <Spin /> : imageUrl && <img src={imageUrl} />}
-    </div>
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '120px' }}>
+          <Spin size="large" />
+        </div>
+      ) : (
+        images && (
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr 1fr',
+              gridGap: '20px',
+              maxHeight: '500px',
+              overflow: 'scroll',
+            }}
+          >
+            {images.map((img) => {
+              return (
+                <Image
+                  width={400}
+                  src={img.url}
+                  style={{
+                    padding: '0px',
+                    borderRadius: '50%',
+                  }}
+                />
+              );
+            })}
+          </div>
+        )
+      )}
+    </Modal>
   );
 };
 
